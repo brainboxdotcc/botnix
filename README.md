@@ -1,7 +1,7 @@
 # botnix
 The Botnix IRC bot and it's associated modules
 
-Botnix is a highly modular, highly portable IRC bot designed to be connected to multiple networks at any one time. It is lightweight, fast and expandable, written in Perl. Botnix supports SSL, IPv6 and proxies, and is currently in beta stages of development. Many modules are already tested and working, such as modules to imitate an InfoBot, or to track when users were last seen. You can download it from our subversion repository or visit our forums below. There is a sizeable amount of documentation on our wiki, and more documentation will follow as it is needed. 
+Botnix is a highly modular, highly portable IRC and Discord bot designed to be connected to multiple networks at any one time. It is lightweight, fast and expandable, written in Perl. Botnix supports SSL, IPv6 and proxies, and is currently in beta stages of development. Many modules are already tested and working, such as modules to imitate an InfoBot, or to track when users were last seen. You can download it from our subversion repository or visit our forums below. There is a sizeable amount of documentation on our wiki, and more documentation will follow as it is needed. 
 
 **What is required to run Botnix?**
 
@@ -14,7 +14,8 @@ A lot of the time you will find that PPM fails to install Socket6 (simply becaus
     ppm install http://www.open.com.au/radiator/free-downloads/Socket6.ppd
 
 These are precompiled binary packages which will work in ActiveState perl 5.8 and will run correctly. If one command fails, this is because the required tarballs are not on the server, please try the next command in this list. If you wish to mirror this directory structure, you may find a zip of the /ppm directory here.
-What is required for Gentoo users to run Botnix?
+
+**What is required for Gentoo users to run Botnix?**
 
 For the very lazy:
 
@@ -22,7 +23,7 @@ For the very lazy:
 
 **Can botnix connect to discord?**
 
-Although botnix is an IRC bot, there have recently been developments allowing connection of specific modules to discord, namely the infobot module. You can connect this to discord via a special briding module found under the discord folder. This is a git submodule and can be accessed on github via: https://github.com/braindigitalis/botnix-discord
+There have recently been developments allowing connection of specific modules to discord, namely the infobot module. You can connect this to discord via a special briding module found under the discord folder. This is a git submodule and can be accessed on github via: https://github.com/braindigitalis/botnix-discord - You'll need PHP 7.0 or greater on your server to run the discord connector.
 
 **Do i need the Socket6 module even if my machine does not have ipv6 enabled?**
 
