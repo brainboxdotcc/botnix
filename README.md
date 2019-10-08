@@ -20,6 +20,10 @@ For the very lazy:
 
     emerge Socket6 Digest-SHA1 Net-SSLeay.
 
+**Can botnix connect to discord?**
+
+Although botnix is an IRC bot, there have recently been developments allowing connection of specific modules to discord, namely the infobot module. You can connect this to discord via a special briding module found under the discord folder.
+
 **Do i need the Socket6 module even if my machine does not have ipv6 enabled?**
 
 Yes. This is essentially a wrapper over Socket, so it is still required. It should still compile, so long as your operating system has the neccessary headers (e.g. if it's newer than around five years old... which it should be unless you like to run insecure software!)
