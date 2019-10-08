@@ -22,7 +22,7 @@ For the very lazy:
 
 **Can botnix connect to discord?**
 
-Although botnix is an IRC bot, there have recently been developments allowing connection of specific modules to discord, namely the infobot module. You can connect this to discord via a special briding module found under the discord folder.
+Although botnix is an IRC bot, there have recently been developments allowing connection of specific modules to discord, namely the infobot module. You can connect this to discord via a special briding module found under the discord folder. This is a git submodule and can be accessed on github via: https://github.com/braindigitalis/botnix-discord
 
 **Do i need the Socket6 module even if my machine does not have ipv6 enabled?**
 
