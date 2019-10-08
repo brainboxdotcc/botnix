@@ -10,16 +10,15 @@ I can't get ActiveState perl to install Socket6 through PPM!
 
 A lot of the time you will find that PPM fails to install Socket6 (simply because ActiveState broke the package!). If you have problems you should install it with one of the following commands:
 
-ppm install http://www.botnix.org/ppm/Socket6.ppd
-
-ppm install http://www.open.com.au/radiator/free-downloads/Socket6.ppd
+    ppm install http://www.botnix.org/ppm/Socket6.ppd
+    ppm install http://www.open.com.au/radiator/free-downloads/Socket6.ppd
 
 These are precompiled binary packages which will work in ActiveState perl 5.8 and will run correctly. If one command fails, this is because the required tarballs are not on the server, please try the next command in this list. If you wish to mirror this directory structure, you may find a zip of the /ppm directory here.
 What is required for Gentoo users to run Botnix?
 
 For the very lazy:
 
-emerge Socket6 Digest-SHA1 Net-SSLeay.
+    emerge Socket6 Digest-SHA1 Net-SSLeay.
 
 **Do i need the Socket6 module even if my machine does not have ipv6 enabled?**
 
@@ -121,11 +120,9 @@ Actually the name has two origins... Firstly, it comes from a character from the
 
 It hasn't actually hung. If you have text like this in your command prompt:
 
-Botnix 0.4.5
-
-Initializing: STORE MODULES CONFIG USERS
-
-Done, switching to background using SW_HIDE...
+    Botnix 0.4.5
+    Initializing: STORE MODULES CONFIG USERS
+    Done, switching to background using SW_HIDE...
 
 Then all you need to do is press enter, and you will return to the command prompt again. The bot will continue to run in the background.
 
