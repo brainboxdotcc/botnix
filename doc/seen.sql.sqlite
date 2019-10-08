@@ -1,0 +1,12 @@
+CREATE TABLE seen
+(
+	ss_nick TEXT default '' PRIMARY KEY,
+	ss_ident TEXT default '',
+	ss_host TEXT default '',
+	ss_network TEXT default '',
+	ss_action TEXT default '',
+	ss_when INTEGER default 0,
+	ss_where TEXT default '',
+	ss_data text,
+	ss_visible TEXT default 'y'
+)

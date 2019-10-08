@@ -1,0 +1,13 @@
+CREATE TABLE seen
+(
+	ss_nick varchar(255) NOT NULL default '',
+	ss_ident varchar(255) NOT NULL default '',
+	ss_host varchar(255) NOT NULL default '',
+	ss_network varchar(255) NOT NULL default '',
+	ss_action varchar(5) NOT NULL default '',
+	ss_when int(10) unsigned NOT NULL default '0',
+	ss_where varchar(255) NOT NULL default '',
+	ss_data text NOT NULL,
+	ss_visible char(1) NOT NULL default 'y',
+	KEY ss_nick (ss_nick)
+)

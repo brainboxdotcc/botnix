@@ -1,0 +1,8 @@
+CREATE TABLE infobot (
+	key_word TEXT default '' PRIMARY KEY,
+	value TEXT default '',
+	word TEXT default '',
+	setby TEXT default '',
+	whenset INTEGER default 0,
+	locked INTEGER default 0
+)

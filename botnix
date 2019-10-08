@@ -1,0 +1,191 @@
+#!/usr/bin/perl
+
+# Please include this text with any bug reports
+# $Id: botnix 10807 2008-11-15 15:42:06Z brain $
+# =============================================
+
+#    Botnix -  The modular, portable multi-network IRC bot
+#    Copyright (C) 2005 Craig Edwards
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of version two (2) of the GNU General Public
+#    License as published by the Free Software Foundation.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+
+BEGIN {
+	$VERSION = "1.0-Beta1";
+}
+
+use strict;
+require 5.008;
+use Socket;
+use Socket6;
+use Getopt::Long;
+use Carp qw(cluck);
+
+our $debug = undef;
+our $help = undef;
+our $conf = undef;
+our $dont_fork = undef;
+our $nofork = undef;
+
+our %users = ();
+our $userfile = "botnix.uf";
+our $storefile = "botnix.store";
+our $masterkey = 0;
+our $LOADTIME = time;
+
+GetOptions(     "debug" => \$main::debug,
+		"nofork" => \$main::nofork,
+                "help" => \$main::help,
+                "config:s" => \$main::conf,
+		"win32" => \$main::dont_fork,	# do not specify this! win32 daemonizing uses it.
+);
+
+if (!defined($main::conf)) {
+        $main::conf = "botnix.conf";
+}
+
+
+if (!defined($help)) {
+
+	print "Botnix $main::VERSION\n\n";
+
+	our $has_ssl = 1;
+	if (eval "use Net::SSLeay qw(die_now die_if_ssl_error);", $@) {
+		$main::has_ssl = 0;
+	}
+
+	require 'modules/core/background.pm';
+	require 'modules/core/socket.pm';
+	require 'modules/core/config.pm';
+	require 'modules/core/modules.pm';
+	require 'modules/core/userfile.pm';
+	require 'modules/core/store.pm';
+
+	if (!readconfig($main::conf,1)) {
+		print "\n\nConfiguration failed! Please see the documentation at\n";
+		print "http://www.botnix.org/wiki/index.php/Annotated_Example_Config\n";
+		print "for documentation on the configuration file format.\n";
+		exit;
+	}
+	$masterkey = &checkuserfile($main::userfile);
+
+	print "Initializing: ";
+
+	if ($main::has_ssl) {
+		Net::SSLeay::load_error_strings();
+		Net::SSLeay::SSLeay_add_ssl_algorithms();
+		Net::SSLeay::randomize();
+		print "SSL ";
+	}
+
+} else {
+
+	print <<CRUD;
+BotNix (C) 2005 Craig Edwards (Brain)
+
+  --nofork             Dont daemonize
+  --debug              Dont daemonize, display all raw I/O on console
+  --config=filename    Specify config file instead of botnix.conf
+  --help               Display this help text
+
+BotNix comes with ABSOLUTELY NO WARRANTY; for details
+read the file docs/COPYING. This is free software, and you
+are welcome to redistribute it under certain conditions.
+Again, see the license (GPL) for details.
+
+CRUD
+	exit(0);
+}
+
+$SIG{INT} = \&saveall;
+$SIG{PWR} = \&saveall;
+$SIG{HUP} = \&rehasher;
+
+&loadstorefile($storefile);
+print "STORE ";
+&loadmodules;
+print "MODULES ";
+if (!readconfig($conf,0)) {
+        print "\n\nConfiguration failed! Please see the documentation at\n";
+        print "http://www.botnix.org/wiki/index.php/Annotated_Example_Config\n";
+        print "for documentation on the configuration file format.\n";
+	exit;
+}
+print "CONFIG ";
+&loaduserfile($userfile);
+print "USERS ";
+
+srand;
+
+if (defined($main::debug)) {
+        $main::debug = 1;
+} else {
+        if ($^O !~ /MSWin32/) {
+		print "\n\nDone, switching to background using fork...\n";
+                &daemon;
+        } else {
+		print "\n\nDone, switching to background using exec and win32...\n";
+		&win32daemon;
+        }
+}
+
+foreach my $network (keys %main::config) {
+        if ($network ne "_") {
+                my @addresses = split(' ',$main::config{$network}{addresses});
+                my $address_to_use = $addresses[rand(@addresses)-1];
+                my ($server,$port) = split('/',$address_to_use);
+                &connect($network,$server,$port,$main::config{$network}{nickname},$main::config{$network}{ident},$main::config{$network}{gecos},$main::config{$network}{password},$main::config{$network}{bind},$main::config{$network}{ssl},$main::config{$network}{proxy_host},$main::config{$network}{proxy_port},$main::config{$network}{proxy_user},$main::config{$network}{proxy_pass});
+        }
+}
+
+
+while(1) {
+	&pollnetworks;
+};
+
+sub saveall {
+	lprint("Got termination signal, exiting!");
+	saveuserfile($main::userfile);
+	savestorefile();
+	foreach my $network (keys %main::netid) {
+		writeto($network,"QUIT :Leaving");
+	}
+	exit;
+}
+
+sub rehasher {
+	lprint("Got SIGHUP, rehashing!");
+        foreach my $nid (keys %main::netid) {
+                my @chans = split(' ',$main::config{$nid}{channels} . $main::config{_}{channels});
+                foreach my $channelname (@chans) {
+                        do_part($nid,$channelname,"Rehashing on SIGHUP");
+                }
+        }
+        saveuserfile($main::userfile);
+        savestorefile();
+	loadstorefile($main::storefile);
+	unload_all_modules();
+	if (readconfig($main::conf,1)) {
+		loadmodules();
+		if (readconfig($main::conf,0)) {
+			loaduserfile($main::userfile);
+		}
+	}
+        # nuke everything
+        %main::nicks = ();
+	foreach my $nid (keys %main::netid) {
+		onconnect($nid,$main::netid{$nid}{server},$main::netid{$nid}{nick},$main::netid{$nid}{ident},"","","");
+	}
+	$SIG{HUP} = \&rehasher;
+}
