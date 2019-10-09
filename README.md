@@ -1,5 +1,5 @@
 # botnix
-A highly modular perl and discord bot.
+A highly modular perl bot for IRC and discord.
 
 Botnix is a highly modular, highly portable IRC and Discord bot designed to be connected to multiple networks at any one time. It is lightweight, fast and expandable, written in Perl. Botnix supports SSL, IPv6 and proxies, and is currently in beta stages of development. Many modules are already tested and working, such as modules to imitate an InfoBot, or to track when users were last seen. You can download it from our subversion repository or visit our forums below. There is a sizeable amount of documentation on our wiki, and more documentation will follow as it is needed. 
 
