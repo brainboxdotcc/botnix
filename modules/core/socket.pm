@@ -379,7 +379,8 @@ sub send_notice {
 sub send_privmsg {
         my ($nid,$target,$text) = @_;
 	$text = " " if ((!defined $text) || ($text eq ""));
-        writeto($nid,"PRIVMSG $target :$text");
+	# Don't let botnix message itself!!!
+        writeto($nid,"PRIVMSG $target :$text") if ($target ne $netid{$nid}{nick});
 }
 
 sub readfrom {
