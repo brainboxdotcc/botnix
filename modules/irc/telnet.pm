@@ -16,6 +16,7 @@ sub init {
 
 sub send_tel {
 	my ($id,$text) = @_;
+	main::lprint("TELOUT $id: $text") if $main::debug;
 	$text .= "\r\n";
 	main::write_socket($id,$text);
 	$telnets{$id}{out} += length($text);

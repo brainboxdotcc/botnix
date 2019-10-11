@@ -1,10 +1,11 @@
 package modules::irc::infobot;
 
 use strict;
-use constant { 'NOAD' => 0, 'NMAD' => 1, 'OVAD' => 2 };
-# NOAD => No Address (blah)
-# NMAD => Name Address (Botnick, blah)
-# OVAD => Override Address (no Botnick, blah)
+use Data::Dumper::OneLine;
+use constant { 'NOT_ADDRESSED' => 0, 'ADDRESSED_BY_NICKNAME' => 1, 'ADDRESSED_BY_NICKNAME_CORRECTION' => 2 };
+# NOT_ADDRESSED => No Address (blah)
+# ADDRESSED_BY_NICKNAME => Name Address (Botnick, blah)
+# ADDRESSED_BY_NICKNAME_CORRECTION => Override Address (no Botnick, blah)
 
 my $self;
 my %stats;
@@ -12,6 +13,7 @@ my %replies;
 my $db;
 my $quiet = 0;
 my $lastresponse = "";
+my $rn = "";
 
 sub init
 {
@@ -24,6 +26,7 @@ sub init
         main::add_context_help("DR","Syntax: DR <user> <text>\n.");
 
         main::add_command("DR",$self."::handle_dr");
+	main::add_command("RN",$self."::handle_rn");
 
         main::lprint($self . ": Set up commands");
 
@@ -41,7 +44,8 @@ sub shutdown
 {
 	main::del_help_commands("Channel Commands",("DR"));
         main::del_context_help("DR");
-        main::del_command("DR");	
+        main::del_command("DR");
+	main::del_command("RN");
 }
 
 sub on_configure
@@ -56,6 +60,12 @@ sub after_configure
 	$db  = &modules::db::sql::db;
 }
 
+sub handle_rn {
+	my ($nid,$nick,$ident,$host,@params) = @_;
+	$rn = join(' ', @params);
+	return ("RN SET");
+}
+
 sub handle_dr {
 	my ($nid,$nick,$ident,$host,@params) = @_;
 	$lastresponse = "*NOTHING*";
@@ -64,7 +74,8 @@ sub handle_dr {
 	my $message = join(' ',@params);
 	on_privmsg($self, "ChatSpike", "irc.chatspike.net", $who, $ident, $host, "Sporks", $message);
 	main::lprint("LAST RESPONSE: " . $lastresponse);
-	return ($lastresponse);
+	$rn = "";
+	return ($lastresponse,Dumper($main::netid{'ChatSpike'})); #encode_json($main::netid{"ChatSpike"}));
 }
 
 sub on_privmsg
@@ -72,7 +83,7 @@ sub on_privmsg
 	my($self, $nid, $server, $nick, $ident, $host, $target, $text) = @_;
 	my $mynick = $main::netid{$nid}{nick};
 	my($key, $value, $word, $when, $setby, $locked, $rpllist);
-	my $level = NOAD;
+	my $level = NOT_ADDRESSED;
 	$rpllist = "";
 
 	my $direct_question = 0;
@@ -85,8 +96,8 @@ sub on_privmsg
 		$text = $2;
 
 		# If it was addressing us, remove the part with our nick in it, and any punctuation after it...
-		$level = OVAD() if($address =~ /^no\s*$mynick[,: ]+$/i);
-		$level = NMAD() if($address =~ /^$mynick[,: ]+$/i);
+		$level = ADDRESSED_BY_NICKNAME_CORRECTION() if($address =~ /^no\s*$mynick[,: ]+$/i);
+		$level = ADDRESSED_BY_NICKNAME() if($address =~ /^$mynick[,: ]+$/i);
 
 		if ($text =~ /^(who|what|where)\s+(is|was|are)\s+(.+?)[\?!\.]*$/i)
 		{
@@ -114,7 +125,7 @@ sub on_privmsg
 		 	main::lprint("rpllist: $rpllist") if $main::debug;
 		}
 		# Logged-in only lock command
-		elsif(($level == NMAD) and ($text =~ /^(lock|unlock|be quiet|be annoying)\s*(.*)$/i))
+		elsif(($level == ADDRESSED_BY_NICKNAME) and ($text =~ /^(lock|unlock|be quiet|be annoying)\s*(.*)$/i))
 		{
 			my $cmd = $1;
 			$key = $2;
@@ -145,7 +156,7 @@ sub on_privmsg
 			}
 		}
 		# Forget command...conratulations me on nearly releasing without this...
-		elsif(($level == NMAD) and ($text =~ /^forget (.*?)$/i))
+		elsif(($level == ADDRESSED_BY_NICKNAME) and ($text =~ /^forget (.*?)$/i))
 		{
 			$key = $1;
 			$key =~ s/(\.|\,|\!|\?|\s+)$//g;
@@ -168,15 +179,17 @@ sub on_privmsg
 			}
 		}
 		# Status command, world availiable
-		elsif($level >= NMAD and $text =~ /^status\?*$/i)
+		elsif($level >= ADDRESSED_BY_NICKNAME and $text =~ /^status\?*$/i)
 		{
+			main::lprint("*** infobot status report ***");
 			# my($sec, $min, $hour, $mday, $mon, $year) = localtime(time-$stats{'startup'});
 			# sprintf("%4d-%02d-%02d %02d:%02d:%02d ",$year+1900,$mon+1,$mday,$hour,$min,$sec)
 			my $phrases = get_phrase_count();
 			my ($days, $hours, $mins, $secs) = main::get_uptime();
 			my $status = "Since " . gmtime($stats{'startup'}) . ", there have been " . $stats{'modcount'} . " modifications and " . $stats{'qcount'} . " questions. I have been alive for $days days, $hours hours, $mins mins, and $secs seconds, I currently know " . $phrases . " phrases of rubbish";
 			$lastresponse = $status;
-			main::send_privmsg($nid, $target, $status) unless $quiet;
+			main::send_privmsg($nid, $target, $status);
+			return;
 		}
 		# Literal command, print out key and value with no parsing
 		elsif ($text =~ /^literal (.*)\?*$/i)
@@ -187,7 +200,7 @@ sub on_privmsg
 			if(my($reply) = get_def($key))
 			{
 				$lastresponse = "$key is $reply";
-				main::send_privmsg($nid, $target, "$key is $reply") unless $quiet;
+				main::send_privmsg($nid, $target, "$key is $reply");
 				return;
 			}
 			else
@@ -216,20 +229,20 @@ sub on_privmsg
 				
 					if(locked($key))
 					{
-						$rpllist = 'locked' if($level >= NMAD());
+						$rpllist = 'locked' if($level >= ADDRESSED_BY_NICKNAME());
 					}
-					elsif(($level eq OVAD()) or (!get_def($key)))
+					elsif(($level eq ADDRESSED_BY_NICKNAME_CORRECTION()) or (!get_def($key)))
 					{
 						set_def($key, $value, $word, $nick, time, 0);
 							$stats{'modcount'}++;
-						$rpllist = 'confirm' if($level >= NMAD());
+						$rpllist = 'confirm' if($level >= ADDRESSED_BY_NICKNAME());
 					}
 					else
 					{
 						my($reply) = get_def($key);
 						if($reply ne $value)
 						{
-							$rpllist = 'notnew' if($level >= NMAD());
+							$rpllist = 'notnew' if($level >= ADDRESSED_BY_NICKNAME());
 						} 
 					}
 				}
@@ -247,16 +260,16 @@ sub on_privmsg
 		
 			if(locked($key))
 			{
-				$rpllist = 'locked' if($level >= NMAD());
+				$rpllist = 'locked' if($level >= ADDRESSED_BY_NICKNAME());
 			}
-			elsif(($level eq OVAD()) or (!get_def($key)))
+			elsif(($level eq ADDRESSED_BY_NICKNAME_CORRECTION()) or (!get_def($key)))
 			{
 				# If we're overriding, then just do it, and do it if it's not already set.
 				set_def($key, $value, $word, $nick, time, 0);
 				$stats{'modcount'}++;
 			
 				# Only send the confirmation message if the bot was addressed directly...cut down on spam
-				$rpllist = 'confirm' if($level >= NMAD());
+				$rpllist = 'confirm' if($level >= ADDRESSED_BY_NICKNAME());
 			}
 			else
 			{
@@ -274,12 +287,12 @@ sub on_privmsg
 						$value = $reply . " or " . $value;
 					}
 					set_def($key, $value, $word, $nick, time, 0);
-					$rpllist = 'confirm' if($level >= NMAD());
+					$rpllist = 'confirm' if($level >= ADDRESSED_BY_NICKNAME());
 				}
 				elsif($reply ne $value)
 				{
 					# If someone tries to set something which is already set without overriding, tell them it's already set.
-					$rpllist = 'notnew' if($level >= NMAD());
+					$rpllist = 'notnew' if($level >= ADDRESSED_BY_NICKNAME());
 				}
 			}
 		}
@@ -293,12 +306,12 @@ sub on_privmsg
 
 			if(($value) = get_def($key))
 			{
-				if (($direct_question == 1) || (rand(15) > 13) || ($level >= NMAD))
+				if (($direct_question == 1) || (rand(15) > 13) || ($level >= ADDRESSED_BY_NICKNAME))
 				{
 					$rpllist = 'replies';
 				}
 			}
-			elsif($level >= NMAD)
+			elsif($level >= ADDRESSED_BY_NICKNAME)
 			{
 				# We were asked about something we didn't know about...
 				# Don't say we don't know unless we were addressed directly
@@ -502,9 +515,12 @@ sub expand
 	# Expands all the tokens which can be used in the user input.
 	my($str, $setdate, $nick, $target, $nid) = @_;
 	my $mynick = $main::netid{$nid}{nick};
+	my $randuser = $main::users[int rand @main::users];
 	
 	my @users = main::get_members $nid, $target;
-	my $randuser = $users[int rand @users];
+	if ($rn ne "") {
+		$randuser = $rn;
+	}
 	my $date = gmtime;
 
 	# Define the expansions which can be used in a value (the part it learnt, not the part you configured)
