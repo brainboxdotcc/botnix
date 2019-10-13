@@ -10,6 +10,7 @@ use constant { 'NOT_ADDRESSED' => 0, 'ADDRESSED_BY_NICKNAME' => 1, 'ADDRESSED_BY
 my $self;
 my %stats;
 my %replies;
+my %sequence;
 my $db;
 my $quiet = 0;
 my $lastresponse = "";
@@ -88,6 +89,11 @@ sub on_privmsg
 
 	my $direct_question = 0;
 	$direct_question = 1 if ($text =~ /[\?!]$/);
+
+	if (!defined($sequence{"$nid $nick"})) {
+		$sequence{"$nid $nick"} = 0;
+	}
+	$sequence{"$nid $nick"}++;
 		
 	#if(($text =~ /^()(no\s*$mynick|$mynick)[?]*$/i) or ($text =~ /^(no\s*$mynick|$mynick|)[,: ]{0,}([^\001]+.*?[^\001]?)$/i))
 	if($text =~ /^(no\s*$mynick[,: ]+|$mynick[,: ]+|)(.*?)$/i)
@@ -523,12 +529,26 @@ sub expand
 	}
 	my $date = gmtime;
 
+	my $sc = 0;
+	if (defined($sequence{"$nid $nick"})) {
+		$sc = $sequence{"$nid $nick"};
+	}
+
 	# Define the expansions which can be used in a value (the part it learnt, not the part you configured)
 	$str =~ s/<me>/$mynick/gi; # Bot's nick
 	$str =~ s/<who>/$nick/gi; # Person asking's nick
 	$str =~ s/<random>/$randuser/gi; # Random person on the channel
 	$str =~ s/<date>/$setdate/gi; # Date the phrase was learnt
 	$str =~ s/<now>/$date/gi; # Current date
+	$str =~ s/<sequence>/$sc/gi; # Sequence number
+
+	# Randomised string lists
+	while ($str =~ /<list:.+?>/) {
+		my ($choicelist) = $str =~ m/<list:(.+?)>/;
+		my @opts = split /,/, $choicelist;
+		my $opt = @opts[int rand @opts];
+		$str =~ s/<list:.+?>/$opt/;
+	}
 
 	# Blank things that couldnt be defined at all
 	$str = "" if ($str eq '%v');
