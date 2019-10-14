@@ -23,6 +23,8 @@ For the very lazy:
 
 **Can botnix connect to discord?**
 
+[![Discord Bots](https://top.gg/api/widget/630730262765895680.svg)](https://top.gg/bot/630730262765895680)
+
 There have recently been developments allowing connection of specific modules to discord, namely the infobot module. You can connect this to discord via a special briding module found under the discord folder. This is a git submodule and can be accessed on github via: https://github.com/braindigitalis/botnix-discord - You'll need PHP 7.0 or greater on your server to run the discord connector.
 
 **Do i need the Socket6 module even if my machine does not have ipv6 enabled?**
