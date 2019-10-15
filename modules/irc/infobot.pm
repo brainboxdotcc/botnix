@@ -14,6 +14,7 @@ my %sequence;
 my $db;
 my $quiet = 0;
 my $lastresponse = "";
+my $found = 0;
 my $rn = "";
 
 sub init
@@ -69,11 +70,13 @@ sub handle_rn {
 
 sub handle_dr {
 	my ($nid,$nick,$ident,$host,@params) = @_;
+	$found = 0;
 	$lastresponse = "*NOTHING*";
 	main::lprint($self . ": **** DR ****");
 	my $who = shift @params;
 	my $message = join(' ',@params);
 	on_privmsg($self, "ChatSpike", "irc.chatspike.net", $who, $ident, $host, "Sporks", $message);
+	$lastresponse = "$found $lastresponse";
 	main::lprint("LAST RESPONSE: " . $lastresponse);
 	$rn = "";
 	return ($lastresponse,Dumper($main::netid{'ChatSpike'})); #encode_json($main::netid{"ChatSpike"}));
@@ -86,6 +89,8 @@ sub on_privmsg
 	my($key, $value, $word, $when, $setby, $locked, $rpllist);
 	my $level = NOT_ADDRESSED;
 	$rpllist = "";
+
+	$found = 1;
 
 	my $direct_question = 0;
 	$direct_question = 1 if ($text =~ /[\?!]$/);
@@ -144,10 +149,12 @@ sub on_privmsg
 					{
 						$locked = (lc $cmd eq 'lock') ? 1 : 0;
 						set_def($key, $value, $word, $setby, $when, $locked);
+						$found = 0;
 						$rpllist = "confirm";
 					}
 					else
 					{
+						$found = 0;
 						$rpllist = "dontknow";
 					}
 				}
@@ -181,6 +188,7 @@ sub on_privmsg
 			}
 			else
 			{
+				$found = 0;
 				$rpllist = "dontknow";
 			}
 		}
@@ -211,6 +219,7 @@ sub on_privmsg
 			}
 			else
 			{
+				$found = 0;
 				$rpllist = "dontknow";
 			}
 		}
@@ -241,6 +250,7 @@ sub on_privmsg
 					{
 						set_def($key, $value, $word, $nick, time, 0);
 							$stats{'modcount'}++;
+						$found = 0;
 						$rpllist = 'confirm' if($level >= ADDRESSED_BY_NICKNAME());
 					}
 					else
@@ -275,6 +285,7 @@ sub on_privmsg
 				$stats{'modcount'}++;
 			
 				# Only send the confirmation message if the bot was addressed directly...cut down on spam
+				$found = 0;
 				$rpllist = 'confirm' if($level >= ADDRESSED_BY_NICKNAME());
 			}
 			else
@@ -293,11 +304,13 @@ sub on_privmsg
 						$value = $reply . " or " . $value;
 					}
 					set_def($key, $value, $word, $nick, time, 0);
+					$found = 0;
 					$rpllist = 'confirm' if($level >= ADDRESSED_BY_NICKNAME());
 				}
 				elsif($reply ne $value)
 				{
 					# If someone tries to set something which is already set without overriding, tell them it's already set.
+					$found = 0;
 					$rpllist = 'notnew' if($level >= ADDRESSED_BY_NICKNAME());
 				}
 			}
@@ -321,6 +334,7 @@ sub on_privmsg
 			{
 				# We were asked about something we didn't know about...
 				# Don't say we don't know unless we were addressed directly
+				$found = 0;
 				$rpllist = 'dontknow';
 			}
 		}
