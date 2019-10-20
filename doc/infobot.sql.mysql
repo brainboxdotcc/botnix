@@ -16,3 +16,9 @@ CREATE TABLE `infobot` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 
 ### COLLATION: utf8mb4_general_ci;
+
+CREATE TABLE `infobot_discord_settings` (
+ `id` bigint(20) unsigned NOT NULL COMMENT 'discord channel id',
+ `settings` longtext CHARACTER SET utf8mb4 NOT NULL,
+ PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COMMENT='infobot settings for discord servers'
