@@ -179,11 +179,13 @@ sub on_privmsg
 				if(locked($key))
 				{
 					$rpllist = 'locked';
+					$found = 1;
 				}
 				else
 				{
 					set_def($key);
 					$rpllist = 'forgot';
+					$found = 1;
 				}
 			}
 			else
@@ -219,7 +221,7 @@ sub on_privmsg
 			}
 			else
 			{
-				$found = 0;
+				$found = 1;
 				$rpllist = "dontknow";
 			}
 		}
@@ -310,7 +312,7 @@ sub on_privmsg
 				elsif($reply ne $value)
 				{
 					# If someone tries to set something which is already set without overriding, tell them it's already set.
-					$found = 0;
+					$found = 1;
 					$rpllist = 'notnew' if($level >= ADDRESSED_BY_NICKNAME());
 				}
 			}
