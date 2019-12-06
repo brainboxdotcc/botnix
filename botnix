@@ -27,6 +27,9 @@ BEGIN {
 
 use strict;
 require 5.008;
+
+use lib '.';
+
 use Socket;
 use Socket6;
 use Getopt::Long;
