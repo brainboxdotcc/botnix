@@ -1,3 +1,0 @@
-[submodule "discord-cpp"]
-	path = discord-cpp
-	url = git@github.com:braindigitalis/botnix-discord-cpp
